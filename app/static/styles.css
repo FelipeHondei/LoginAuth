@@ -254,6 +254,7 @@ input:focus + label {
 
 .btn-secondary {
   background: linear-gradient(45deg, var(--muted), #4a5568);
+  margin-top: 10px;
 }
 
 .user-info {
