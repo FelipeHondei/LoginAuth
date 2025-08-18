@@ -257,6 +257,10 @@ input:focus + label {
   margin-top: 10px;
 }
 
+.btn-edit {
+  background: linear-gradient(45deg, var(--muted), #4a5568);
+}
+
 .user-info {
   background: rgba(122, 162, 247, 0.1);
   border: 1px solid var(--primary);

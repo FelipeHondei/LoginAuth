@@ -100,7 +100,7 @@
                     actions.className = "task-actions";
                     
                     const btnToggle = document.createElement("button");
-                    btnToggle.className = `btn ${task.done ? 'btn-secondary' : 'btn-success'}`;
+                    btnToggle.className = `btn ${task.done ? 'btn-edit' : 'btn-success'}`;
                     btnToggle.innerHTML = task.done ? '↩️ Reabrir' : '✅ Concluir';
                     btnToggle.onclick = async () => {
                         btnToggle.innerHTML = '<div class="loading"></div>';
@@ -117,7 +117,7 @@
                     };
                     
                     const btnEdit = document.createElement("button");
-                    btnEdit.className = "btn btn-secondary";
+                    btnEdit.className = "btn btn-edit";
                     btnEdit.innerHTML = '✏️ Editar';
                     btnEdit.onclick = async () => {
                         const title = prompt("✏️ Novo título:", task.title);
