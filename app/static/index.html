@@ -3,49 +3,77 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title> Projeto A </title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <title>TaskFlow - Gerenciador de Tarefas</title>
+    <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-<div class="container">
-    <h1>Gerenciador de tarefas</h1>
+    <div class="bg-particles" id="particles"></div>
+    
+    <div class="container">
+        <h1>✨ TaskFlow</h1>
 
-    <section id="auth-section" class="card">
-        <h2>Autenticação</h2>
-        <div id="auth-forms">
-            <div class="form">
-                <h3>Registrar</h3>
-                <label>Nome <input id="reg-name" /></label>
-                <label>Email <input id="reg-email" type="email" /></label>
-                <label>Senha <input id="reg-password" type="password" /></label>
-                <button id="btn-register">Criar conta</button>
+        <section id="auth-section" class="card fade-in">
+            <div class="section-title">
+                🔐 Autenticação
             </div>
-            <div class="form">
-                <h3>Login</h3>
-                <label>Email <input id="login-email" type="email" /></label>
-                <label>Senha <input id="login-password" type="password" /></label>
-                <button id="btn-login">Entrar</button>
+            <div id="auth-forms">
+                <div class="auth-container">
+                    <div class="form">
+                        <h3>Criar Conta</h3>
+                        <div class="input-group">
+                            <label>Nome Completo</label>
+                            <input id="reg-name" placeholder="Digite seu nome" />
+                        </div>
+                        <div class="input-group">
+                            <label>E-mail</label>
+                            <input id="reg-email" type="email" placeholder="seu@email.com" />
+                        </div>
+                        <div class="input-group">
+                            <label>Senha</label>
+                            <input id="reg-password" type="password" placeholder="Senha segura" />
+                        </div>
+                        <button id="btn-register" class="btn">Criar Conta</button>
+                    </div>
+                    <div class="form">
+                        <h3>Fazer Login</h3>
+                        <div class="input-group">
+                            <label>E-mail</label>
+                            <input id="login-email" type="email" placeholder="seu@email.com" />
+                        </div>
+                        <div class="input-group">
+                            <label>Senha</label>
+                            <input id="login-password" type="password" placeholder="Sua senha" />
+                        </div>
+                        <button id="btn-login" class="btn">Entrar</button>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div id="me" class="hidden"></div>
-        <button id="btn-logout" class="hidden">Sair</button>
-    </section>
+            <div id="me" class="hidden user-info"></div>
+            <button id="btn-logout" class="btn btn-secondary hidden">Sair</button>
+        </section>
 
-    <section id="tasks-section" class="card hidden">
-        <h2>Tarefas</h2>
-        <div class="form-inline">
-            <input id="task-title" placeholder="Título" />
-            <input id="task-desc" placeholder="Descrição (opcional)" />
-            <button id="btn-add">Adicionar</button>
-        </div>
-        <ul id="tasks"></ul>
-    </section>
-    <div id="toast" class="toast hidden"></div>
-</div>
+        <section id="tasks-section" class="card hidden">
+            <div class="section-title">
+                📋 Minhas Tarefas
+            </div>
+            <div class="form-inline">
+                <div class="input-group">
+                    <label>Título da Tarefa</label>
+                    <input id="task-title" placeholder="Ex: Estudar JavaScript" />
+                </div>
+                <div class="input-group">
+                    <label>Descrição (opcional)</label>
+                    <input id="task-desc" placeholder="Detalhes da tarefa..." />
+                </div>
+                <button id="btn-add" class="btn pulse">+ Adicionar</button>
+            </div>
+            <div class="tasks-container">
+                <ul id="tasks"></ul>
+            </div>
+        </section>
+    </div>
 
-<script src="/static/main.js"></script>
+    <div id="toast" class="toast"></div>
+    <script src="./main.js"></script>
 </body>
-
 </html>
-
-
