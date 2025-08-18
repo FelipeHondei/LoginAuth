@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Projeto Fullstack - Sem npm</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<div class="container">
+    <h1>Projeto Fullstack</h1>
+
+    <section id="auth-section" class="card">
+        <h2>Autenticação</h2>
+        <div id="auth-forms">
+            <div class="form">
+                <h3>Registrar</h3>
+                <label>Nome <input id="reg-name" /></label>
+                <label>Email <input id="reg-email" type="email" /></label>
+                <label>Senha <input id="reg-password" type="password" /></label>
+                <button id="btn-register">Criar conta</button>
+            </div>
+            <div class="form">
+                <h3>Login</h3>
+                <label>Email <input id="login-email" type="email" /></label>
+                <label>Senha <input id="login-password" type="password" /></label>
+                <button id="btn-login">Entrar</button>
+            </div>
+        </div>
+        <div id="me" class="hidden"></div>
+        <button id="btn-logout" class="hidden">Sair</button>
+    </section>
+
+    <section id="tasks-section" class="card hidden">
+        <h2>Tarefas</h2>
+        <div class="form-inline">
+            <input id="task-title" placeholder="Título" />
+            <input id="task-desc" placeholder="Descrição (opcional)" />
+            <button id="btn-add">Adicionar</button>
+        </div>
+        <ul id="tasks"></ul>
+    </section>
+    <div id="toast" class="toast hidden"></div>
+</div>
+
+<script src="/static/main.js"></script>
+</body>
+
+</html>
+
+

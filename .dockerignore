@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+.git
+.gitignore
+*.sqlite3
+app/data.sqlite3
+node_modules
+*.log
+.DS_Store
+
