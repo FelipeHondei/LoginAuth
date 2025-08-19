@@ -114,8 +114,18 @@ def login(payload: LoginRequest, response: Response):
 
 @app.post("/api/auth/logout")
 def logout(response: Response):
+    # Para remoção confiável em ambiente cross-site, use os mesmos atributos do cookie de login
     response = JSONResponse({"ok": True})
-    response.delete_cookie(COOKIE_NAME, path="/")
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value="",
+        max_age=0,
+        expires=0,
+        path="/",
+        httponly=True,
+        samesite=samesite_policy,
+        secure=secure_flag,
+    )
     return response
 
 
