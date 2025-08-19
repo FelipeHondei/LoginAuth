@@ -36,10 +36,22 @@ def on_startup() -> None:
 
 # CORS para hospedar frontend em outro domínio
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
-allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+allowed_origins = []
+for o in allowed_origins_env.split(","):
+    o = o.strip()
+    if not o:
+        continue
+    # Normaliza removendo barra final
+    if o.endswith("/"):
+        o = o[:-1]
+    allowed_origins.append(o)
 if not allowed_origins:
-    # Defaults de desenvolvimento (sirva frontend com http.server em 5500)
-    allowed_origins = ["http://127.0.0.1:5500", "https://dashing-pothos-2d7265.netlify.app/"]
+    # Defaults de desenvolvimento/produção (sem barra no final)
+    allowed_origins = [
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "https://dashing-pothos-2d7265.netlify.app",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,6 +66,11 @@ app.add_middleware(
 secure_cookies = os.getenv("SECURE_COOKIES", "true").lower() in ("1", "true", "yes")
 samesite_policy = "none" if secure_cookies else "lax"
 secure_flag = True if secure_cookies else False
+
+
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
 
 
 @app.post("/api/auth/register")
