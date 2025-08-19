@@ -1,8 +1,9 @@
 from typing import Optional
+import os
 
-from fastapi import FastAPI, Depends, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from .db import get_connection, initialize_database
 from .security import create_access_token, decode_access_token, hash_password, verify_password
@@ -33,13 +34,26 @@ def on_startup() -> None:
     initialize_database()
 
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# CORS para hospedar frontend em outro domínio
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+if not allowed_origins:
+    # Defaults de desenvolvimento (sirva frontend com http.server em 5500)
+    allowed_origins = ["http://127.0.0.1:5500", "https://dashing-pothos-2d7265.netlify.app/"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.get("/", response_class=HTMLResponse)
-def serve_index() -> HTMLResponse:
-    with open("app/static/index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+# Configuração de cookies para cross-site
+secure_cookies = os.getenv("SECURE_COOKIES", "false").lower() in ("1", "true", "yes")
+samesite_policy = "none" if secure_cookies else "lax"
+secure_flag = True if secure_cookies else False
 
 
 @app.post("/api/auth/register")
@@ -73,8 +87,8 @@ def login(payload: LoginRequest, response: Response):
             key=COOKIE_NAME,
             value=token,
             httponly=True,
-            samesite="lax",
-            secure=False,
+            samesite=samesite_policy,
+            secure=secure_flag,
             max_age=60 * 60 * 24,
             path="/",
         )

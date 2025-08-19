@@ -10,7 +10,7 @@ Este projeto demonstra habilidades fullstack sem utilizar npm. O backend é em P
 ### Requisitos
 - Python 3.10+
 
-### Como rodar
+### Como rodar (backend + frontend juntos no mesmo host)
 1. Crie e ative um ambiente virtual (opcional, porém recomendado):
    - PowerShell (Windows):
      ```powershell
@@ -26,6 +26,19 @@ Este projeto demonstra habilidades fullstack sem utilizar npm. O backend é em P
    uvicorn app.main:app --reload
    ```
 4. Acesse o frontend em `http://127.0.0.1:8000/`.
+
+### Rodar frontend separadamente
+1. Copie `frontend/config.example.js` para `frontend/config.js` e ajuste `window.API_BASE_URL` para a URL do backend (ex.: `http://127.0.0.1:8000`).
+2. Sirva a pasta `frontend/` com qualquer servidor estático. Exemplo via Python:
+   ```bash
+   cd frontend
+   python -m http.server 5500
+   ```
+3. Abra `http://127.0.0.1:5500/` no navegador.
+
+Para produção em domínios diferentes, defina no backend as variáveis:
+- `ALLOWED_ORIGINS`: lista separada por vírgula com as origens do frontend, por exemplo: `https://seu-frontend.hf.space,https://seu-frontend.netlify.app`
+- `SECURE_COOKIES=true` quando usar HTTPS em ambos os lados para permitir `SameSite=None`.
 
 ### Rotas principais
 - `POST /api/auth/register` – cria usuário `{name, email, password}`
