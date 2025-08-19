@@ -51,7 +51,7 @@ app.add_middleware(
 
 
 # Configuração de cookies para cross-site
-secure_cookies = os.getenv("SECURE_COOKIES", "false").lower() in ("1", "true", "yes")
+secure_cookies = os.getenv("SECURE_COOKIES", "true").lower() in ("1", "true", "yes")
 samesite_policy = "none" if secure_cookies else "lax"
 secure_flag = True if secure_cookies else False
 
