@@ -26,7 +26,7 @@ def get_current_user_id(request: Request) -> Optional[int]:
         return None
 
 
-app = FastAPI(title="Projeto Fullstack sem npm")
+app = FastAPI(title="Projeto Fullstack")
 
 
 @app.on_event("startup")
@@ -50,7 +50,7 @@ if not allowed_origins:
     allowed_origins = [
         "http://127.0.0.1:5500",
         "http://localhost:5500",
-        "https://dashing-pothos-2d7265.netlify.app",
+        "https://loginauthtask.netlify.app/",
     ]
 
 app.add_middleware(
@@ -76,29 +76,29 @@ def health() -> dict:
 @app.post("/api/auth/register")
 def register(payload: RegisterRequest):
     with get_connection() as conn:
-        cur = conn.cursor()
-        try:
-            cur.execute(
-                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-                (payload.name, payload.email.lower(), hash_password(payload.password)),
-            )
-            conn.commit()
-        except Exception as e:
-            # Email duplicado
-            raise HTTPException(status_code=400, detail="Email já cadastrado") from e
-        user_id = cur.lastrowid
-        return {"id": user_id, "name": payload.name, "email": payload.email}
+        with conn.cursor() as cur:
+            try:
+                cur.execute(
+                    "INSERT INTO users (name, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
+                    (payload.name, payload.email.lower(), hash_password(payload.password)),
+                )
+                user_id = cur.fetchone()[0]
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise HTTPException(status_code=400, detail="Email já cadastrado") from e
+            return {"id": user_id, "name": payload.name, "email": payload.email}
 
 
 @app.post("/api/auth/login")
 def login(payload: LoginRequest, response: Response):
     with get_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id, password_hash FROM users WHERE email = ?", (payload.email.lower(),))
-        row = cur.fetchone()
-        if not row or not verify_password(payload.password, row["password_hash"]):
-            raise HTTPException(status_code=401, detail="Credenciais inválidas")
-        token = create_access_token(str(row["id"]))
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, password_hash FROM users WHERE email = %s", (payload.email.lower(),))
+            row = cur.fetchone()
+            if not row or not verify_password(payload.password, row[1]):
+                raise HTTPException(status_code=401, detail="Credenciais inválidas")
+            token = create_access_token(str(row[0]))
         response = JSONResponse({"ok": True})
         response.set_cookie(
             key=COOKIE_NAME,
@@ -135,12 +135,12 @@ def me(request: Request):
     if not user_id:
         raise HTTPException(status_code=401, detail="Não autenticado")
     with get_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id, name, email FROM users WHERE id = ?", (user_id,))
-        row = cur.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Usuário não encontrado")
-        return {"id": row["id"], "name": row["name"], "email": row["email"]}
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, email FROM users WHERE id = %s", (user_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            return {"id": row[0], "name": row[1], "email": row[2]}
 
 
 @app.get("/api/tasks", response_model=list[TaskOut])
@@ -149,18 +149,18 @@ def list_tasks(request: Request):
     if not user_id:
         raise HTTPException(status_code=401, detail="Não autenticado")
     with get_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT id, title, description, done FROM tasks WHERE user_id = ? ORDER BY created_at DESC",
-            (user_id,),
-        )
-        rows = cur.fetchall()
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, title, description, done FROM tasks WHERE user_id = %s ORDER BY created_at DESC",
+                (user_id,),
+            )
+            rows = cur.fetchall()
     return [
         {
-            "id": r["id"],
-            "title": r["title"],
-            "description": r["description"],
-            "done": bool(r["done"]),
+            "id": r[0],
+            "title": r[1],
+            "description": r[2],
+            "done": bool(r[3]),
         }
         for r in rows
     ]
@@ -172,21 +172,19 @@ def create_task(payload: TaskCreate, request: Request):
     if not user_id:
         raise HTTPException(status_code=401, detail="Não autenticado")
     with get_connection() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO tasks (user_id, title, description) VALUES (?, ?, ?)",
-            (user_id, payload.title, payload.description),
-        )
-        conn.commit()
-        task_id = cur.lastrowid
-        cur.execute("SELECT id, title, description, done FROM tasks WHERE id = ?", (task_id,))
-        row = cur.fetchone()
-        return {
-            "id": row["id"],
-            "title": row["title"],
-            "description": row["description"],
-            "done": bool(row["done"]),
-        }
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO tasks (user_id, title, description) VALUES (%s, %s, %s) RETURNING id, title, description, done",
+                (user_id, payload.title, payload.description),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return {
+                "id": row[0],
+                "title": row[1],
+                "description": row[2],
+                "done": bool(row[3]),
+            }
 
 
 @app.put("/api/tasks/{task_id}", response_model=TaskOut)
@@ -195,36 +193,34 @@ def update_task(task_id: int, payload: TaskUpdate, request: Request):
     if not user_id:
         raise HTTPException(status_code=401, detail="Não autenticado")
     with get_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM tasks WHERE id = ? AND user_id = ?", (task_id, user_id))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail="Tarefa não encontrada")
-        sets = []
-        values: list[object] = []
-        if payload.title is not None:
-            sets.append("title = ?")
-            values.append(payload.title)
-        if payload.description is not None:
-            sets.append("description = ?")
-            values.append(payload.description)
-        if payload.done is not None:
-            sets.append("done = ?")
-            values.append(1 if payload.done else 0)
-        if not sets:
-            raise HTTPException(status_code=400, detail="Nada para atualizar")
-        sets.append("updated_at = CURRENT_TIMESTAMP")
-        sql = f"UPDATE tasks SET {', '.join(sets)} WHERE id = ?"
-        values.append(task_id)
-        cur.execute(sql, tuple(values))
-        conn.commit()
-        cur.execute("SELECT id, title, description, done FROM tasks WHERE id = ?", (task_id,))
-        row = cur.fetchone()
-        return {
-            "id": row["id"],
-            "title": row["title"],
-            "description": row["description"],
-            "done": bool(row["done"]),
-        }
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM tasks WHERE id = %s AND user_id = %s", (task_id, user_id))
+            if not cur.fetchone():
+                raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+            sets = []
+            values: list[object] = []
+            if payload.title is not None:
+                sets.append("title = %s")
+                values.append(payload.title)
+            if payload.description is not None:
+                sets.append("description = %s")
+                values.append(payload.description)
+            if payload.done is not None:
+                sets.append("done = %s")
+                values.append(bool(payload.done))
+            if not sets:
+                raise HTTPException(status_code=400, detail="Nada para atualizar")
+            values.append(task_id)
+            sql = f"UPDATE tasks SET {', '.join(sets)} WHERE id = %s RETURNING id, title, description, done"
+            cur.execute(sql, tuple(values))
+            row = cur.fetchone()
+            conn.commit()
+            return {
+                "id": row[0],
+                "title": row[1],
+                "description": row[2],
+                "done": bool(row[3]),
+            }
 
 
 @app.delete("/api/tasks/{task_id}")
@@ -233,11 +229,59 @@ def delete_task(task_id: int, request: Request):
     if not user_id:
         raise HTTPException(status_code=401, detail="Não autenticado")
     with get_connection() as conn:
-        cur = conn.cursor()
-        cur.execute("DELETE FROM tasks WHERE id = ? AND user_id = ?", (task_id, user_id))
-        if cur.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Tarefa não encontrada")
-        conn.commit()
-        return {"ok": True}
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM tasks WHERE id = %s AND user_id = %s", (task_id, user_id))
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+            conn.commit()
+            return {"ok": True}
 
 
+# --------- Rotas administrativas (usar Postman com X-Admin-Key) ---------
+
+def _is_admin(request: Request) -> bool:
+    admin_key = os.getenv("ADMIN_KEY")
+    if not admin_key:
+        return False
+    provided = request.headers.get("x-admin-key") or request.headers.get("X-Admin-Key")
+    return provided == admin_key
+
+
+@app.get("/api/users")
+def list_users(request: Request):
+    if not _is_admin(request):
+        raise HTTPException(status_code=403, detail="Admin key ausente ou inválida")
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, email FROM users ORDER BY created_at DESC")
+            rows = cur.fetchall()
+            return [
+                {"id": r[0], "name": r[1], "email": r[2]}
+                for r in rows
+            ]
+
+
+@app.get("/api/users/{user_id}")
+def get_user(user_id: int, request: Request):
+    if not _is_admin(request):
+        raise HTTPException(status_code=403, detail="Admin key ausente ou inválida")
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, email FROM users WHERE id = %s", (user_id,))
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            return {"id": row[0], "name": row[1], "email": row[2]}
+
+
+@app.delete("/api/users/{user_id}")
+def delete_user(user_id: int, request: Request):
+    if not _is_admin(request):
+        raise HTTPException(status_code=403, detail="Admin key ausente ou inválida")
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Usuário não encontrado")
+            conn.commit()
+            return {"ok": True}
